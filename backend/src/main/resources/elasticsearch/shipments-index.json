@@ -1,0 +1,37 @@
+{
+  "settings": {
+    "analysis": {
+      "normalizer": {
+        "lowercase_normalizer": {
+          "type": "custom",
+          "filter": ["lowercase"]
+        }
+      }
+    }
+  },
+  "mappings": {
+    "properties": {
+      "id": { "type": "keyword" },
+      "origin_city": {
+        "type": "text",
+        "fields": {
+          "keyword": { "type": "keyword", "normalizer": "lowercase_normalizer" }
+        }
+      },
+      "origin_state": { "type": "keyword", "normalizer": "lowercase_normalizer" },
+      "destination_city": {
+        "type": "text",
+        "fields": {
+          "keyword": { "type": "keyword", "normalizer": "lowercase_normalizer" }
+        }
+      },
+      "destination_state": { "type": "keyword", "normalizer": "lowercase_normalizer" },
+      "pickup_date": { "type": "date" },
+      "equipment_type": { "type": "keyword" },
+      "rate_usd": { "type": "double" },
+      "weight_lbs": { "type": "integer" },
+      "status": { "type": "keyword" },
+      "updated_at": { "type": "date" }
+    }
+  }
+}
