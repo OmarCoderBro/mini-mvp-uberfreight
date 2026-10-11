@@ -4,6 +4,17 @@ Synthetic shipment search using PostgreSQL → Elasticsearch → Spring Boot API
 
 Postgres acts as the source of truth, Elasticsearch provides inverted indexes for fast searches. 
 
+## Quick architecture sanity check
+
+```
+PostgreSQL --(ReindexRunner batch job)--> Elasticsearch <--(search queries)-- Spring Boot API <-- React page
+```
+
+- **PostgreSQL** stores the 300 synthetic shipments (loaded by `SeedData`).
+- **ReindexRunner** copies every row into Elasticsearch, using the Postgres `id` as the document ID so re-runs never create duplicates.
+- **Spring Boot API** (`GET /shipments/search`, `GET /health`) validates filters and queries Elasticsearch only. It is read-only.
+- **React + TypeScript (Vite)** is a single page with a search box, filters, and paginated results.
+
 ## Run locally
 
 MVP requires Docker, Java 17 + Maven (brew install openjdk@17 maven), and Node.js.
