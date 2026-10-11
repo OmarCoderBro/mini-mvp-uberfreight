@@ -1,10 +1,12 @@
-# Freight Search MVP
+# Scoped Shipment Freight Search MVP - Omar Shatat
 
-Synthetic shipment search: PostgreSQL → Elasticsearch → Spring Boot API → React page.
+Synthetic shipment search using PostgreSQL → Elasticsearch → Spring Boot API → React page.
+
+Postgres acts as the source of truth, Elasticsearch provides inverted indexes for fast searches. 
 
 ## Run locally
 
-Requires Docker, Java 17 + Maven (`brew install openjdk@17 maven`), and Node.js.
+MVP requires Docker, Java 17 + Maven (brew install openjdk@17 maven), and Node.js.
 
 If `java` isn't found:
 ```bash
@@ -12,12 +14,12 @@ export JAVA_HOME=/opt/homebrew/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home
 export PATH=$JAVA_HOME/bin:$PATH
 ```
 
-**1. Start the databases** (from the repo root)
+**1. start the databases** (from the repo root)
 ```bash
 docker compose up -d
 ```
 
-**2. Seed, index, and start the API** (one terminal, from `backend/`)
+**2. configure Elasticsearch and Postgres, seed the database with synthetic data using Java SeedData, index data, start the Spring Boot API** (one terminal, from `backend/`)
 ```bash
 cd backend
 export DB_URL=jdbc:postgresql://localhost:5433/freight DB_USER=freight DB_PASSWORD=freight
@@ -35,11 +37,11 @@ npm install
 npm run dev
 ```
 
-Open the URL Vite prints (normally http://localhost:5173). Check the API at http://localhost:8080/health.
+Open the URL React outputs (normally http://localhost:5173). Check the API at http://localhost:8080/health.
 
 **Stop:** Ctrl+C both terminals, then `docker compose down`.
 
-## Troubleshooting
+## Troubleshooting Tips for this MVP
 - **If Port 8080 is still in use:** 
 `kill $(lsof -nP -tiTCP:8080 -sTCP:LISTEN)`.
 - **To check if its running on there:**
