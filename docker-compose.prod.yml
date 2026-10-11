@@ -1,0 +1,85 @@
+# Single-host deployment (e.g. one EC2 instance). Only nginx is published;
+# PostgreSQL and Elasticsearch are reachable only on the internal network.
+name: freight-prod
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME:-freight}
+      POSTGRES_USER: ${DB_USER:-freight}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?set DB_PASSWORD in .env}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-freight} -d ${DB_NAME:-freight}"]
+      interval: 5s
+      retries: 12
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.13.4
+    restart: unless-stopped
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+    volumes:
+      - esdata:/usr/share/elasticsearch/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:9200/_cluster/health || exit 1"]
+      interval: 10s
+      retries: 18
+
+  backend:
+    build: ./backend
+    restart: unless-stopped
+    environment:
+      DB_URL: jdbc:postgresql://postgres:5432/${DB_NAME:-freight}
+      DB_USER: ${DB_USER:-freight}
+      DB_PASSWORD: ${DB_PASSWORD}
+      ES_URL: http://elasticsearch:9200
+      ES_INDEX: ${ES_INDEX:-shipments}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      elasticsearch:
+        condition: service_healthy
+
+  frontend:
+    build: ./frontend
+    restart: unless-stopped
+    ports:
+      - "${HTTP_PORT:-80}:80"
+    depends_on:
+      - backend
+
+  # One-off jobs: docker compose -f docker-compose.prod.yml run --rm seed | reindex
+  seed:
+    build: ./backend
+    profiles: ["tools"]
+    entrypoint: ["java", "-Dloader.main=com.uberfreight.search.scripts.SeedData", "-cp", "app.jar", "org.springframework.boot.loader.launch.PropertiesLauncher"]
+    environment: &toolenv
+      DB_URL: jdbc:postgresql://postgres:5432/${DB_NAME:-freight}
+      DB_USER: ${DB_USER:-freight}
+      DB_PASSWORD: ${DB_PASSWORD}
+      ES_URL: http://elasticsearch:9200
+      ES_INDEX: ${ES_INDEX:-shipments}
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  reindex:
+    build: ./backend
+    profiles: ["tools"]
+    entrypoint: ["java", "-Dloader.main=com.uberfreight.search.scripts.ReindexRunner", "-cp", "app.jar", "org.springframework.boot.loader.launch.PropertiesLauncher"]
+    environment: *toolenv
+    depends_on:
+      postgres:
+        condition: service_healthy
+      elasticsearch:
+        condition: service_healthy
+
+volumes:
+  pgdata:
+  esdata:
